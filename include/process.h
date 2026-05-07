@@ -14,10 +14,10 @@ typedef enum {
 
 // ─── Causas de terminación ────────────────────────────────────────────────────
 typedef enum {
-    NORMAL,
-    ERROR,
-    INTERBLOQUEO,
-    USUARIO
+    CAUSA_NORMAL,
+    CAUSA_ERROR,
+    CAUSA_INTERBLOQUEO,
+    CAUSA_USUARIO
 } CausaTerminacion;
 
 // ─── Bloque de Control de Proceso (PCB) ───────────────────────────────────────

@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulador de Gestor de Procesos</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            background: #0d1117;
+            color: #c9d1d9;
+            font-family: 'Courier New', monospace;
+            padding: 20px;
+        }
+
+        h1 {
+            text-align: center;
+            color: #58a6ff;
+            font-size: 1.4em;
+            margin-bottom: 5px;
+            letter-spacing: 2px;
+        }
+
+        .subtitulo {
+            text-align: center;
+            color: #8b949e;
+            font-size: 0.8em;
+            margin-bottom: 20px;
+        }
+
+        /* ── Layout principal ── */
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 300px;
+            grid-template-rows: auto auto;
+            gap: 15px;
+        }
+
+        /* ── Tarjetas ── */
+        .card {
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 8px;
+            padding: 15px;
+        }
+
+        .card h2 {
+            font-size: 0.75em;
+            color: #8b949e;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            margin-bottom: 12px;
+            border-bottom: 1px solid #30363d;
+            padding-bottom: 8px;
+        }
+
+        /* ── Procesos ── */
+        .proceso-card {
+            background: #0d1117;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+            padding: 10px;
+            margin-bottom: 8px;
+        }
+
+        .proceso-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 6px;
+        }
+
+        .proceso-nombre {
+            font-weight: bold;
+            color: #e6edf3;
+            font-size: 0.9em;
+        }
+
+        .badge {
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.7em;
+            font-weight: bold;
+            letter-spacing: 1px;
+        }
+
+        .badge-NUEVO      { background: #21262d; color: #8b949e; }
+        .badge-LISTO      { background: #1f3a1f; color: #3fb950; }
+        .badge-EJECUTANDO { background: #1a3a5c; color: #58a6ff; }
+        .badge-ESPERANDO  { background: #3a2a1a; color: #d29922; }
+        .badge-TERMINADO  { background: #3a1a1a; color: #f85149; }
+
+        .proceso-info {
+            font-size: 0.75em;
+            color: #8b949e;
+            display: flex;
+            gap: 12px;
+        }
+
+        /* ── Recursos ── */
+        .recurso-item {
+            margin-bottom: 12px;
+        }
+
+        .recurso-label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.8em;
+            margin-bottom: 4px;
+        }
+
+        .barra-fondo {
+            background: #21262d;
+            border-radius: 4px;
+            height: 10px;
+            overflow: hidden;
+        }
+
+        .barra-relleno {
+            height: 100%;
+            border-radius: 4px;
+            transition: width 0.5s ease;
+        }
+
+        .barra-cpu    { background: #58a6ff; }
+        .barra-mem    { background: #3fb950; }
+
+        /* ── Algoritmo ── */
+        .algoritmo-actual {
+            text-align: center;
+            font-size: 1.1em;
+            color: #58a6ff;
+            font-weight: bold;
+            margin-bottom: 12px;
+            padding: 8px;
+            background: #0d1117;
+            border-radius: 6px;
+            border: 1px solid #1f6feb;
+        }
+
+        select, input {
+            background: #21262d;
+            border: 1px solid #30363d;
+            color: #c9d1d9;
+            padding: 6px 10px;
+            border-radius: 6px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85em;
+            width: 100%;
+            margin-bottom: 8px;
+        }
+
+        /* ── Botones ── */
+        .btn {
+            padding: 7px 14px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-family: 'Courier New', monospace;
+            font-size: 0.8em;
+            font-weight: bold;
+            letter-spacing: 1px;
+            transition: opacity 0.2s;
+            width: 100%;
+            margin-bottom: 6px;
+        }
+
+        .btn:hover { opacity: 0.8; }
+        .btn-azul  { background: #1f6feb; color: white; }
+        .btn-verde { background: #238636; color: white; }
+        .btn-rojo  { background: #da3633; color: white; }
+        .btn-gris  { background: #30363d; color: #c9d1d9; }
+
+        /* ── Formulario crear proceso ── */
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 6px;
+        }
+
+        .form-grid input { margin-bottom: 0; }
+
+        label {
+            font-size: 0.72em;
+            color: #8b949e;
+            display: block;
+            margin-bottom: 3px;
+        }
+
+        /* ── Log ── */
+        .log-container {
+            grid-column: 1 / -1;
+        }
+
+        #log-lista {
+            max-height: 180px;
+            overflow-y: auto;
+            font-size: 0.75em;
+        }
+
+        .log-item {
+            padding: 4px 8px;
+            border-bottom: 1px solid #21262d;
+            display: flex;
+            gap: 12px;
+        }
+
+        .log-tiempo { color: #3fb950; min-width: 80px; }
+        .log-pid    { color: #58a6ff; min-width: 50px; }
+        .log-desc   { color: #c9d1d9; }
+
+        /* ── Estado del sistema ── */
+        .estado-sistema {
+            background: #0d1117;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+            padding: 8px 12px;
+            font-size: 0.8em;
+            margin-top: 10px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .estado-label { color: #8b949e; }
+        .estado-valor { color: #58a6ff; font-weight: bold; }
+
+        /* ── Sin procesos ── */
+        .vacio {
+            text-align: center;
+            color: #484f58;
+            font-size: 0.85em;
+            padding: 20px;
+        }
+    </style>
+</head>
+<body>
+
+<h1>SIMULADOR DE GESTOR DE PROCESOS</h1>
+<p class="subtitulo">Sistemas Operativos · Universidad Autónoma de Tamaulipas · 2026</p>
+
+<div class="grid">
+
+    <!-- ── Panel de procesos ── -->
+    <div class="card">
+        <h2>Procesos activos</h2>
+        <div id="lista-procesos">
+            <div class="vacio">No hay procesos creados</div>
+        </div>
+        <div class="estado-sistema">
+            <span class="estado-label">Cola de listos:</span>
+            <span class="estado-valor" id="cola-cantidad">0 procesos</span>
+        </div>
+    </div>
+
+    <!-- ── Panel de control ── -->
+    <div class="card">
+        <h2>Control</h2>
+
+        <div class="algoritmo-actual" id="algoritmo-actual">Round Robin</div>
+
+        <div style="margin-bottom:12px">
+            <label>Cambiar algoritmo</label>
+            <select id="sel-algoritmo">
+                <option value="2">Round Robin</option>
+                <option value="0">FCFS</option>
+                <option value="1">SJF</option>
+                <option value="3">Prioridad</option>
+            </select>
+            <label>Quantum (ms) — solo Round Robin</label>
+            <input type="number" id="inp-quantum" value="4" min="1">
+            <button class="btn btn-gris" onclick="cambiarAlgoritmo()">
+                CAMBIAR ALGORITMO
+            </button>
+        </div>
+
+        <hr style="border-color:#30363d; margin-bottom:12px">
+
+        <label>Crear nuevo proceso</label>
+        <div class="form-grid" style="margin-bottom:8px">
+            <div>
+                <label>Nombre</label>
+                <input type="text" id="inp-nombre" placeholder="editor">
+            </div>
+            <div>
+                <label>Prioridad (0-9)</label>
+                <input type="number" id="inp-prioridad" value="2" min="0" max="9">
+            </div>
+            <div>
+                <label>Ráfaga CPU (ms)</label>
+                <input type="number" id="inp-rafaga" value="10" min="1">
+            </div>
+            <div>
+                <label>Memoria (MB)</label>
+                <input type="number" id="inp-memoria" value="256" min="1">
+            </div>
+        </div>
+        <button class="btn btn-verde" onclick="crearProceso()">
+            + CREAR PROCESO
+        </button>
+
+        <hr style="border-color:#30363d; margin:12px 0">
+
+        <label>Terminar proceso por PID</label>
+        <input type="number" id="inp-pid-terminar" placeholder="PID">
+        <button class="btn btn-rojo" onclick="terminarProceso()">
+            TERMINAR PROCESO
+        </button>
+
+        <button class="btn btn-azul" onclick="despacharSiguiente()"
+                style="margin-top:6px">
+            ▶ DESPACHAR SIGUIENTE
+        </button>
+    </div>
+
+    <!-- ── Panel de recursos ── -->
+    <div class="card">
+        <h2>Recursos del sistema</h2>
+
+        <div class="recurso-item">
+            <div class="recurso-label">
+                <span>CPU</span>
+                <span id="cpu-texto">1 / 1 libre</span>
+            </div>
+            <div class="barra-fondo">
+                <div class="barra-relleno barra-cpu" id="barra-cpu"
+                     style="width:100%"></div>
+            </div>
+        </div>
+
+        <div class="recurso-item">
+            <div class="recurso-label">
+                <span>Memoria RAM</span>
+                <span id="mem-texto">4096 / 4096 MB</span>
+            </div>
+            <div class="barra-fondo">
+                <div class="barra-relleno barra-mem" id="barra-mem"
+                     style="width:100%"></div>
+            </div>
+        </div>
+
+        <div class="estado-sistema" style="margin-top:16px; flex-direction:column; gap:6px">
+            <div style="display:flex; justify-content:space-between">
+                <span class="estado-label">Estado:</span>
+                <span class="estado-valor" id="estado-sistema-txt">Idle</span>
+            </div>
+            <div style="display:flex; justify-content:space-between">
+                <span class="estado-label">Total procesos:</span>
+                <span class="estado-valor" id="total-procesos">0</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- ── Log de eventos ── -->
+    <div class="card log-container">
+        <h2>Registro de eventos</h2>
+        <div id="log-lista">
+            <div class="vacio">Sin eventos registrados</div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    const API = 'http://localhost:3000/api';
+    let eventosAnteriores = 0;
+
+    // ── Actualiza toda la interfaz ────────────────────────────────────────────
+    async function actualizar() {
+        try {
+            const res  = await fetch(`${API}/estado`);
+            const data = await res.json();
+            renderProcesos(data.procesos);
+            renderRecursos(data.cpu_libre, data.memoria_libre);
+            renderLog(data.eventos);
+            document.getElementById('algoritmo-actual').textContent =
+                data.algoritmo;
+            document.getElementById('total-procesos').textContent =
+                data.procesos.length;
+
+            const enEjecucion = data.procesos.filter(
+                p => p.estado === 'EJECUTANDO').length;
+            document.getElementById('estado-sistema-txt').textContent =
+                enEjecucion > 0 ? 'Proceso en CPU' : 'Idle';
+
+            const enCola = data.procesos.filter(
+                p => p.estado === 'LISTO').length;
+            document.getElementById('cola-cantidad').textContent =
+                `${enCola} proceso${enCola !== 1 ? 's' : ''}`;
+        } catch(e) {
+            console.log('Servidor no disponible');
+        }
+    }
+
+    // ── Renderiza lista de procesos ───────────────────────────────────────────
+    function renderProcesos(procesos) {
+        const cont = document.getElementById('lista-procesos');
+        if (!procesos.length) {
+            cont.innerHTML = '<div class="vacio">No hay procesos creados</div>';
+            return;
+        }
+        cont.innerHTML = procesos.map(p => `
+            <div class="proceso-card">
+                <div class="proceso-header">
+                    <span class="proceso-nombre">PID ${p.pid} — ${p.nombre}</span>
+                    <span class="badge badge-${p.estado}">${p.estado}</span>
+                </div>
+                <div class="proceso-info">
+                    <span>Prior: ${p.prioridad}</span>
+                    <span>Ráfaga: ${p.rafaga}ms</span>
+                    <span>Mem: ${p.memoria}MB</span>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    // ── Renderiza recursos ────────────────────────────────────────────────────
+    function renderRecursos(cpuLibre, memLibre) {
+        const cpuPct = (cpuLibre / 1) * 100;
+        const memPct = (memLibre / 4096) * 100;
+
+        document.getElementById('cpu-texto').textContent =
+            `${cpuLibre} / 1 libre`;
+        document.getElementById('mem-texto').textContent =
+            `${memLibre} / 4096 MB`;
+        document.getElementById('barra-cpu').style.width = `${cpuPct}%`;
+        document.getElementById('barra-mem').style.width = `${memPct}%`;
+    }
+
+    // ── Renderiza log ─────────────────────────────────────────────────────────
+    function renderLog(eventos) {
+        const cont = document.getElementById('log-lista');
+        if (!eventos.length) {
+            cont.innerHTML = '<div class="vacio">Sin eventos registrados</div>';
+            return;
+        }
+        cont.innerHTML = eventos.map((e, i) => `
+            <div class="log-item">
+                <span class="log-tiempo">[${String(i).padStart(4,'0')}]</span>
+                <span class="log-pid">PID=${e.pid}</span>
+                <span class="log-desc">${e.desc}</span>
+            </div>
+        `).join('');
+
+        if (eventos.length !== eventosAnteriores) {
+            cont.scrollTop = cont.scrollHeight;
+            eventosAnteriores = eventos.length;
+        }
+    }
+
+    // ── Crear proceso ─────────────────────────────────────────────────────────
+    async function crearProceso() {
+        const nombre    = document.getElementById('inp-nombre').value;
+        const prioridad = document.getElementById('inp-prioridad').value;
+        const rafaga    = document.getElementById('inp-rafaga').value;
+        const memoria   = document.getElementById('inp-memoria').value;
+
+        if (!nombre) { alert('Escribe un nombre'); return; }
+
+        const body = `nombre=${nombre}&prioridad=${prioridad}&rafaga=${rafaga}&memoria=${memoria}`;
+        const res  = await fetch(`${API}/crear`, { method: 'POST', body });
+        const data = await res.json();
+
+        if (data.ok) {
+            document.getElementById('inp-nombre').value = '';
+            actualizar();
+        } else {
+            alert('Error: ' + data.error);
+        }
+    }
+
+    // ── Terminar proceso ──────────────────────────────────────────────────────
+    async function terminarProceso() {
+        const pid = document.getElementById('inp-pid-terminar').value;
+        if (!pid) { alert('Escribe un PID'); return; }
+
+        const res  = await fetch(`${API}/terminar`,
+            { method: 'POST', body: `pid=${pid}` });
+        const data = await res.json();
+
+        if (data.ok) {
+            document.getElementById('inp-pid-terminar').value = '';
+            actualizar();
+        } else {
+            alert('Error: ' + data.error);
+        }
+    }
+
+    // ── Despachar siguiente ───────────────────────────────────────────────────
+    async function despacharSiguiente() {
+        const res  = await fetch(`${API}/despachar`, { method: 'POST', body: '' });
+        const data = await res.json();
+        if (!data.ok) alert('Error: ' + data.error);
+        actualizar();
+    }
+
+    // ── Cambiar algoritmo ─────────────────────────────────────────────────────
+    async function cambiarAlgoritmo() {
+        const algoritmo = document.getElementById('sel-algoritmo').value;
+        const quantum   = document.getElementById('inp-quantum').value;
+
+        const res  = await fetch(`${API}/algoritmo`,
+            { method: 'POST', body: `algoritmo=${algoritmo}&quantum=${quantum}` });
+        const data = await res.json();
+        if (data.ok) actualizar();
+    }
+
+    // ── Polling cada segundo ──────────────────────────────────────────────────
+    actualizar();
+    setInterval(actualizar, 1000);
+</script>
+
+</body>
+</html>
